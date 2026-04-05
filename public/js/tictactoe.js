@@ -77,9 +77,9 @@ socket.on('update_board', (data) => {
     }
 });
 
-// 對手斷線
+// 對手斷線或離開
 socket.on('player_disconnected', () => {
-    alert('對手已斷線！');
+    alert('對手已離開遊戲或斷線！'); //🔥 修改提示文字
     gameWindow.style.display = 'none';
     currentRoomId = null;
 });
@@ -87,6 +87,6 @@ socket.on('player_disconnected', () => {
 // 離開遊戲視窗
 leaveGameBtn.addEventListener('click', () => {
     gameWindow.style.display = 'none';
+    socket.emit('leave_game'); //🔥 發送離開事件給伺服器，讓伺服器清空房間
     currentRoomId = null;
-    // 實務上這裡需要發送 emit 告訴伺服器你退出了房間，並將狀態改回 idle
 });
