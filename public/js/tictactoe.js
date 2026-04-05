@@ -33,6 +33,7 @@ socket.on('spectate_start', (state) => {
     state.board.forEach((playerMark, index) => {
         if (playerMark) {
             cells[index].textContent = 'O'; // 簡單示範，實務上需區分 O 和 X
+            cells[index].classList.add('mark-o'); //🔥 增加樣式發光
         }
     });
 });
