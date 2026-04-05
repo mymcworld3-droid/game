@@ -1,0 +1,49 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>益智對戰平台</title>
+    <link rel="stylesheet" href="/css/style.css">
+</head>
+<body>
+    <div id="login-screen">
+        <h1>益智對戰平台</h1>
+        <input type="text" id="username-input" placeholder="輸入你的玩家暱稱">
+        <button id="login-btn">進入大廳</button>
+    </div>
+
+    <div id="lobby-screen" style="display: none;">
+        <div class="header">
+            <h2 id="welcome-text"></h2>
+        </div>
+        
+        <div class="main-container">
+            <div class="game-list-container">
+                <h3>選擇遊戲</h3>
+                <div class="game-list">
+                    <div class="game-card" id="btn-tictactoe">
+                        <h4>圈圈叉叉 (Tic-Tac-Toe)</h4>
+                        <p>經典 1v1 對戰</p>
+                    </div>
+                    </div>
+            </div>
+
+            <div class="player-list-container">
+                <h3>上線玩家</h3>
+                <ul id="player-list-ul">
+                    </ul>
+            </div>
+        </div>
+    </div>
+
+    <div id="game-window" style="display: none;">
+        <div id="game-content"></div>
+        <button id="leave-game-btn">離開遊戲</button>
+    </div>
+
+    <script src="/socket.io/socket.io.js"></script>
+    <script src="/js/lobby.js"></script>
+    <script src="/js/tictactoe.js"></script>
+</body>
+</html>
