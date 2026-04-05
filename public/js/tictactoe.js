@@ -44,19 +44,36 @@ socket.on('game_start', (data) => {
     gameState.turn = p1;
     gameState.symbols[p1] = 'O';
     gameState.symbols[p2] = 'X';
-    gameState.isGameOver = false; //🔥
-    gameState.winner = null;      //🔥
+    gameState.isGameOver = false;
+    gameState.winner = null;
     
-    mySymbol = gameState.symbols[socket.id]; // 取得自己的符號
+    // 🔥 確保如果是觀戰者在開局前就待在房間，他的符號會正確設為 null
+    mySymbol = gameState.symbols[socket.id] || null; 
     
     renderBoard();
-    updateTurnDisplay(gameState.turn);
+    // 🔥 根據身分初始化回合文字
+    updateTurnDisplay(gameState.turn, mySymbol === null); 
+
+    // 🔥 關鍵修復：遊戲一開始，由房主 (p1) 負責馬上把乾淨的棋盤同步給伺服器
+    // 這樣就算沒人下棋，新進來的觀戰者也不會拿到空資料而當機
+    if (socket.id === p1) {
+        socket.emit('sync_state', { roomId: currentRoomId, state: gameState });
+    }
 });
 
 // 觀戰開始
 socket.on('spectate_start', (data) => {
     currentRoomId = data.roomId;
-    gameState = data.state;
+    
+    // 🔥 雙重防呆：如果伺服器真的連初始狀態都還沒收到，先給予預設空白盤面
+    gameState = data.state.board ? data.state : {
+        board: Array(9).fill(null),
+        turn: '',
+        symbols: {},
+        isGameOver: false,
+        winner: null
+    };
+    
     mySymbol = null; // 觀戰者沒有符號
     
     gameWindow.style.display = 'flex';
@@ -71,7 +88,6 @@ socket.on('spectate_start', (data) => {
         }
     });
 
-    //🔥 如果觀戰時遊戲已結束，要顯示對應畫面
     if (gameState.isGameOver) {
         handleGameOverDisplay(true);
     }
