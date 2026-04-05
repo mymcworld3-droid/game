@@ -3,6 +3,10 @@ const gameWindow = document.getElementById('game-window');
 const gameContent = document.getElementById('game-content');
 const leaveGameBtn = document.getElementById('leave-game-btn');
 
+const customAlertModal = document.getElementById('custom-alert-modal'); //🔥
+const customAlertMessage = document.getElementById('custom-alert-message'); //🔥
+const customAlertBtn = document.getElementById('custom-alert-btn'); //🔥
+
 let currentRoomId = null;
 
 // 點擊遊戲列表中的圈圈叉叉
@@ -79,14 +83,20 @@ socket.on('update_board', (data) => {
 
 // 對手斷線或離開
 socket.on('player_disconnected', () => {
-    alert('對手已離開遊戲或斷線！'); //🔥 修改提示文字
-    gameWindow.style.display = 'none';
-    currentRoomId = null;
+    customAlertMessage.textContent = '對手已離開遊戲或斷線！'; //🔥 改用自訂文字
+    customAlertModal.style.display = 'flex'; //🔥 顯示自訂彈窗
 });
+
+// 自訂彈窗確認按鈕事件 //🔥
+customAlertBtn.addEventListener('click', () => { //🔥
+    customAlertModal.style.display = 'none'; //🔥 隱藏彈窗
+    gameWindow.style.display = 'none'; //🔥 隱藏遊戲視窗
+    currentRoomId = null; //🔥 清空房間狀態
+}); //🔥
 
 // 離開遊戲視窗
 leaveGameBtn.addEventListener('click', () => {
     gameWindow.style.display = 'none';
-    socket.emit('leave_game'); //🔥 發送離開事件給伺服器，讓伺服器清空房間
+    socket.emit('leave_game'); 
     currentRoomId = null;
 });
