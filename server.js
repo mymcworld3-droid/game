@@ -22,25 +22,28 @@ io.on('connection', (socket) => {
         io.emit('update_player_list', players);
     });
 
-    // 處理請求建立/加入圈圈叉叉
-    socket.on('join_tictactoe', () => {
+    // ==========================================
+    // 遊戲通用 API (任何新遊戲都共用這些接口)
+    // ==========================================
+
+    // 1. 通用配對系統
+    socket.on('join_game', (gameName) => {
         if (!players[socket.id]) return;
         
-        // 簡單配對邏輯：找一個正在等候的房間，或建立新房間
         let joined = false;
         for (const roomId in rooms) {
-            if (rooms[roomId].game === 'tictactoe' && rooms[roomId].players.length === 1) {
+            // 尋找同名稱且正在等候的遊戲
+            if (rooms[roomId].game === gameName && rooms[roomId].players.length === 1) {
                 rooms[roomId].players.push(socket.id);
                 players[socket.id].status = 'playing';
                 players[socket.id].roomId = roomId;
                 socket.join(roomId);
                 
-                rooms[roomId].state.symbols[socket.id] = 'X'; //🔥 分配標記 X 給第二位玩家
-                
                 io.to(roomId).emit('game_start', { 
                     roomId: roomId, 
+                    game: gameName,
                     players: rooms[roomId].players,
-                    state: rooms[roomId].state //🔥 將包含回合與標記的 state 傳給前端
+                    state: {} // 初始化空白狀態
                 });
                 io.emit('update_player_list', players);
                 joined = true;
@@ -51,14 +54,10 @@ io.on('connection', (socket) => {
         if (!joined) {
             const newRoomId = 'room_' + socket.id;
             rooms[newRoomId] = { 
-                game: 'tictactoe', 
+                game: gameName, 
                 players: [socket.id], 
                 spectators: [], 
-                state: { 
-                    board: Array(9).fill(null), 
-                    turn: socket.id, //🔥 記錄現在是誰的回合
-                    symbols: { [socket.id]: 'O' } //🔥 房主先手，標記為 O
-                } 
+                state: {} // 狀態交由前端遊戲自行管理與同步
             };
             players[socket.id].status = 'playing';
             players[socket.id].roomId = newRoomId;
@@ -66,6 +65,25 @@ io.on('connection', (socket) => {
             
             socket.emit('waiting_for_opponent');
             io.emit('update_player_list', players);
+        }
+    });
+
+    // 2. 通用遊戲動作轉發
+    socket.on('game_action', (data) => {
+        const { roomId, action, payload } = data;
+        // 伺服器不判斷邏輯，直接將動作轉發給房間內所有人
+        io.to(roomId).emit('game_action', { 
+            sender: socket.id, 
+            action: action, 
+            payload: payload 
+        });
+    });
+
+    // 3. 通用狀態同步 (讓玩家把最新畫面存到伺服器，給觀戰者看)
+    socket.on('sync_state', (data) => {
+        const { roomId, state } = data;
+        if (rooms[roomId]) {
+            rooms[roomId].state = state; 
         }
     });
     
@@ -85,30 +103,7 @@ io.on('connection', (socket) => {
             io.emit('update_player_list', players);
         }
     });
-
-    // 接收遊戲操作
-    socket.on('make_move', (data) => {
-        const { roomId, index } = data;
-        const room = rooms[roomId];
-        //🔥 增加判斷：確保遊戲是圈圈叉叉，並且真的是該玩家的回合
-        if (room && room.game === 'tictactoe' && room.state.turn === socket.id) {
-            //🔥 確保該格子是空的才允許下棋
-            if (room.state.board[index] === null) {
-                const mark = room.state.symbols[socket.id];
-                room.state.board[index] = mark; //🔥 記錄真實的 O 或 X
-                
-                //🔥 換對手回合
-                room.state.turn = (room.players[0] === socket.id) ? room.players[1] : room.players[0];
-                
-                io.to(roomId).emit('update_board', { 
-                    index: index, 
-                    mark: mark, //🔥 傳送標記
-                    nextTurn: room.state.turn //🔥 傳送下一個回合是誰
-                });
-            }
-        }
-    });
-
+    
     // 處理離開遊戲 (主動點擊離開按鈕)
     socket.on('leave_game', () => {
         if (!players[socket.id]) return;
