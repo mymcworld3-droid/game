@@ -70,26 +70,77 @@ io.on('connection', (socket) => {
         }
     });
 
-    // 接收遊戲操作
+    // 接收遊戲操作 (這段保留原本的，加在它下面)
     socket.on('make_move', (data) => {
         const { roomId, index } = data;
         const room = rooms[roomId];
         if (room && room.game === 'tictactoe') {
-            room.state.board[index] = socket.id; // 簡單記錄是誰下的
+            room.state.board[index] = socket.id;
             io.to(roomId).emit('update_board', { index: index, player: socket.id });
         }
     });
 
-    // 處理斷線
+    // 處理離開遊戲 (主動點擊離開按鈕)
+    socket.on('leave_game', () => {
+        if (!players[socket.id]) return;
+        
+        const roomId = players[socket.id].roomId;
+        if (roomId && rooms[roomId]) {
+            // 如果離開的是遊戲玩家
+            if (rooms[roomId].players.includes(socket.id)) {
+                io.to(roomId).emit('player_disconnected'); // 通知房間內其他人退出
+                delete rooms[roomId]; // 刪除房間
+                
+                // 把原本在該房間的所有玩家與觀戰者狀態強制設回 idle
+                for (const pid in players) {
+                    if (players[pid].roomId === roomId) {
+                        players[pid].status = 'idle';
+                        players[pid].roomId = null;
+                        const targetSocket = io.sockets.sockets.get(pid);
+                        if (targetSocket) targetSocket.leave(roomId);
+                    }
+                }
+            } 
+            // 如果離開的只是觀戰者
+            else if (rooms[roomId].spectators.includes(socket.id)) {
+                rooms[roomId].spectators = rooms[roomId].spectators.filter(id => id !== socket.id);
+                players[socket.id].status = 'idle';
+                players[socket.id].roomId = null;
+                socket.leave(roomId);
+            }
+        } else {
+            // 防呆機制：若找不到房間，依然重置玩家狀態
+            players[socket.id].status = 'idle';
+            players[socket.id].roomId = null;
+        }
+        
+        io.emit('update_player_list', players);
+    });
+
+    // 處理斷線 (直接關閉網頁或網路斷線)
     socket.on('disconnect', () => {
         if (players[socket.id]) {
             const roomId = players[socket.id].roomId;
             if (roomId && rooms[roomId]) {
-                // 如果在遊戲中斷線，通知房間內其他人並解散房間
-                io.to(roomId).emit('player_disconnected');
-                delete rooms[roomId];
+                if (rooms[roomId].players.includes(socket.id)) {
+                    // 玩家斷線，通知其他人並解散房間
+                    io.to(roomId).emit('player_disconnected');
+                    delete rooms[roomId];
+                    
+                    for (const pid in players) {
+                        if (players[pid].roomId === roomId && pid !== socket.id) {
+                            players[pid].status = 'idle';
+                            players[pid].roomId = null;
+                            const targetSocket = io.sockets.sockets.get(pid);
+                            if (targetSocket) targetSocket.leave(roomId);
+                        }
+                    }
+                } else if (rooms[roomId].spectators.includes(socket.id)) {
+                    // 觀戰者斷線，單純從名單移除
+                    rooms[roomId].spectators = rooms[roomId].spectators.filter(id => id !== socket.id);
+                }
             }
-            delete players[socket.id];
+            delete players[socket.id]; // 刪除該名斷線玩家的資料
             io.emit('update_player_list', players);
         }
         console.log('使用者斷線:', socket.id);
