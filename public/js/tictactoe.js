@@ -71,7 +71,9 @@ socket.on('update_board', (data) => {
     const cell = document.querySelector(`.cell[data-index="${index}"]`);
     if (cell && !cell.textContent) {
         // 為了示範，由發送者視角填入 O 或 X
-        cell.textContent = player === socket.id ? 'O' : 'X';
+        const mark = player === socket.id ? 'O' : 'X'; //🔥
+        cell.textContent = mark; //🔥
+        cell.classList.add(mark === 'O' ? 'mark-o' : 'mark-x'); //🔥 增加樣式發光
     }
 });
 
