@@ -1,11 +1,29 @@
+/* 讓整個畫面在桌機上置中，並填滿深色背景 */
+html {
+    background-color: #0b0b13; /* 桌機兩側的背景色 */
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    min-height: 100vh;
+    margin: 0;
+    padding: 0;
+}
+
 body {
     font-family: 'Poppins', 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
     margin: 0;
     padding: 0;
-    /* 現代深色漸層背景 */
     background: linear-gradient(135deg, #1e1e2f, #2a2a40);
     color: #ffffff;
-    min-height: 100vh;
+    
+    /* 🔥 絕對手機比例設定 */
+    width: 100%;
+    max-width: 430px; /* 大約是 iPhone Pro Max 的寬度 */
+    height: 100vh;
+    height: 100dvh; /* 支援手機瀏覽器真實可視高度，防止按鈕被位址列擋住 */
+    position: relative;
+    overflow: hidden; /* 防止內容超出手機邊界 */
+    box-shadow: 0 0 50px rgba(0, 210, 252, 0.15); /* 讓桌機版邊緣有發光質感 */
 }
 
 /* 登入畫面精緻化 */
@@ -14,12 +32,15 @@ body {
     flex-direction: column;
     align-items: center;
     justify-content: center;
-    height: 100vh;
+    height: 100%;
     background: radial-gradient(circle at center, #2a2a40 0%, #12121c 100%);
+    padding: 20px;
+    box-sizing: border-box;
+    text-align: center;
 }
 
 #login-screen h1 {
-    font-size: 3.5rem;
+    font-size: 2.5rem; /* 配合手機版縮小一點字體 */
     margin-bottom: 30px;
     text-shadow: 0 4px 10px rgba(0, 0, 0, 0.5);
     background: -webkit-linear-gradient(#00d2fc, #4a00e0);
@@ -29,16 +50,18 @@ body {
 
 #username-input {
     padding: 15px 25px;
-    font-size: 1.2rem;
+    font-size: 1.1rem;
     border: none;
     border-radius: 30px;
     outline: none;
-    width: 280px;
+    width: 85%; /* 改用百分比適應寬度 */
+    max-width: 300px;
     background: rgba(255, 255, 255, 0.1);
     color: white;
     box-shadow: 0 4px 15px rgba(0,0,0,0.2);
     transition: box-shadow 0.3s, background 0.3s;
     margin-bottom: 25px;
+    box-sizing: border-box;
 }
 
 #username-input::placeholder {
@@ -61,6 +84,8 @@ button {
     color: white;
     box-shadow: 0 4px 15px rgba(0, 0, 0, 0.3);
     transition: transform 0.2s, box-shadow 0.2s;
+    width: 85%; /* 改用百分比適應寬度 */
+    max-width: 300px;
 }
 
 button:hover {
@@ -72,26 +97,37 @@ button:active {
     transform: translateY(1px);
 }
 
-/* 大廳排版 */
+/* 大廳排版 (改為上下排列) */
+#lobby-screen {
+    height: 100%;
+}
+
 .header {
-    padding: 20px 40px;
+    padding: 15px 20px;
     background: rgba(0, 0, 0, 0.2);
     box-shadow: 0 2px 15px rgba(0,0,0,0.2);
+    height: 60px;
+    box-sizing: border-box;
+    display: flex;
+    align-items: center;
 }
 
 .header h2 {
     margin: 0;
     font-weight: 600;
+    font-size: 1.3rem;
     color: #00d2fc;
     letter-spacing: 1px;
 }
 
 .main-container {
     display: flex;
-    padding: 30px;
-    gap: 30px;
-    height: calc(100vh - 150px);
+    flex-direction: column; /* 🔥 改為上下疊加，適應手機 */
+    padding: 15px;
+    gap: 15px;
+    height: calc(100% - 60px); /* 扣掉 Header 高度 */
     box-sizing: border-box;
+    overflow-y: auto; /* 螢幕太小時允許大廳整體滾動 */
 }
 
 /* 區塊共用毛玻璃與陰影效果 */
@@ -100,60 +136,44 @@ button:active {
     backdrop-filter: blur(10px);
     -webkit-backdrop-filter: blur(10px);
     border: 1px solid rgba(255, 255, 255, 0.05);
-    padding: 25px;
-    border-radius: 20px;
+    padding: 20px;
+    border-radius: 15px;
     box-shadow: 0 8px 32px rgba(0, 0, 0, 0.2);
     display: flex;
     flex-direction: column;
-}
-
-.game-list-container {
-    flex: 2;
-}
-
-.player-list-container {
-    flex: 1;
+    min-height: 250px; /* 給予基本高度 */
 }
 
 h3 {
     margin-top: 0;
     border-bottom: 2px solid rgba(255,255,255,0.05);
-    padding-bottom: 15px;
-    margin-bottom: 20px;
+    padding-bottom: 10px;
+    margin-bottom: 15px;
     color: #e0e0e0;
     font-weight: 600;
+    font-size: 1.1rem;
 }
 
-/* 遊戲列表 */
-.game-list {
+/* 遊戲與玩家列表 */
+.game-list, #player-list-ul {
     overflow-y: auto;
     display: flex;
     flex-direction: column;
-    gap: 15px;
-    padding-right: 10px;
+    gap: 12px;
+    padding-right: 5px;
 }
 
 /* 自訂精緻捲軸 */
-::-webkit-scrollbar {
-    width: 6px;
-}
-::-webkit-scrollbar-track {
-    background: rgba(0, 0, 0, 0.1);
-    border-radius: 10px;
-}
-::-webkit-scrollbar-thumb {
-    background: rgba(255, 255, 255, 0.2);
-    border-radius: 10px;
-}
-::-webkit-scrollbar-thumb:hover {
-    background: rgba(255, 255, 255, 0.4);
-}
+::-webkit-scrollbar { width: 4px; }
+::-webkit-scrollbar-track { background: rgba(0, 0, 0, 0.1); border-radius: 10px; }
+::-webkit-scrollbar-thumb { background: rgba(255, 255, 255, 0.2); border-radius: 10px; }
+::-webkit-scrollbar-thumb:hover { background: rgba(255, 255, 255, 0.4); }
 
 .game-card {
     background: rgba(0, 0, 0, 0.2);
     border: 1px solid rgba(255,255,255,0.05);
-    padding: 20px;
-    border-radius: 15px;
+    padding: 15px;
+    border-radius: 12px;
     cursor: pointer;
     transition: all 0.3s ease;
     position: relative;
@@ -161,90 +181,43 @@ h3 {
 }
 
 .game-card::before {
-    content: '';
-    position: absolute;
-    top: 0; left: 0; width: 4px; height: 100%;
-    background: #00d2fc;
-    transform: scaleY(0);
-    transition: transform 0.3s ease;
-    transform-origin: bottom;
+    content: ''; position: absolute; top: 0; left: 0; width: 4px; height: 100%;
+    background: #00d2fc; transform: scaleY(0); transition: transform 0.3s ease; transform-origin: bottom;
 }
 
 .game-card:hover {
-    background: rgba(255, 255, 255, 0.08);
-    transform: translateX(8px);
-    box-shadow: 0 4px 15px rgba(0,0,0,0.2);
+    background: rgba(255, 255, 255, 0.08); transform: translateX(5px);
 }
-
-.game-card:hover::before {
-    transform: scaleY(1);
-}
-
-.game-card h4 {
-    margin: 0 0 8px 0;
-    font-size: 1.3rem;
-    color: #fff;
-}
-
-.game-card p {
-    margin: 0;
-    color: #aaa;
-    font-size: 0.95rem;
-}
+.game-card:hover::before { transform: scaleY(1); }
+.game-card h4 { margin: 0 0 5px 0; font-size: 1.1rem; color: #fff; }
+.game-card p { margin: 0; color: #aaa; font-size: 0.85rem; }
 
 /* 玩家列表 */
-#player-list-ul {
-    list-style: none;
-    padding: 0;
-    margin: 0;
-    overflow-y: auto;
-    padding-right: 10px;
-}
-
+#player-list-ul { list-style: none; padding: 0; margin: 0; }
 #player-list-ul li {
-    display: flex;
-    justify-content: space-between;
-    align-items: center;
-    padding: 15px;
-    margin-bottom: 12px;
-    background: rgba(0, 0, 0, 0.2);
-    border-radius: 12px;
-    transition: background 0.2s;
-    border: 1px solid transparent;
+    display: flex; justify-content: space-between; align-items: center;
+    padding: 12px; margin-bottom: 8px; background: rgba(0, 0, 0, 0.2);
+    border-radius: 10px; font-size: 0.9rem; border: 1px solid transparent;
 }
-
-#player-list-ul li:hover {
-    background: rgba(0, 0, 0, 0.4);
-    border: 1px solid rgba(255,255,255,0.05);
-}
-
 .status-idle { color: #4ade80; font-weight: 600; }
 .status-playing { color: #f87171; font-weight: 600; }
 .status-spectating { color: #60a5fa; font-weight: 600; }
 
 .spectate-btn {
-    background: rgba(255, 255, 255, 0.1);
-    border: 1px solid rgba(255, 255, 255, 0.2);
-    padding: 6px 15px;
-    font-size: 0.85rem;
-    box-shadow: none;
-    border-radius: 20px;
+    width: auto; padding: 5px 12px; font-size: 0.8rem;
+    background: rgba(255, 255, 255, 0.1); border: 1px solid rgba(255, 255, 255, 0.2);
+    box-shadow: none; border-radius: 15px;
 }
 
-.spectate-btn:hover {
-    background: #00d2fc;
-    color: #000;
-    transform: scale(1.05);
-}
-
-/* 遊戲視窗 (彈出式) */
-#game-window {
-    position: fixed;
+/* 遊戲視窗與彈窗 (彈出式) */
+/* 🔥 重要：將 fixed 改為 absolute，讓彈窗鎖在手機比例框內，不會跑到桌機背景區 */
+#game-window, #custom-alert-modal {
+    position: absolute; 
     top: 0;
     left: 0;
     width: 100%;
     height: 100%;
-    background: rgba(15, 15, 25, 0.85);
+    background: rgba(15, 15, 25, 0.9);
     backdrop-filter: blur(8px);
     -webkit-backdrop-filter: blur(8px);
     color: white;
@@ -255,42 +228,45 @@ h3 {
     z-index: 1000;
 }
 
+#custom-alert-modal { z-index: 2000; }
+
 #game-content {
     background: rgba(255, 255, 255, 0.03);
-    padding: 50px;
-    border-radius: 25px;
+    width: 90%; /* 自適應手機寬度 */
+    max-width: 350px;
+    padding: 30px 20px; /* 縮小 Padding */
+    border-radius: 20px;
     box-shadow: 0 15px 50px rgba(0,0,0,0.6);
     text-align: center;
     border: 1px solid rgba(255, 255, 255, 0.08);
     margin-bottom: 25px;
+    box-sizing: border-box;
 }
 
-#game-content h3 {
-    border: none;
-    font-size: 2rem;
-    margin-bottom: 30px;
-    color: #fff;
-    text-shadow: 0 2px 10px rgba(0,0,0,0.5);
-}
+#game-content h3 { font-size: 1.5rem; margin-bottom: 20px; border: none; }
+#turn-display { font-size: 1rem !important; margin-bottom: 15px !important; }
 
-/* 圈圈叉叉面板樣式精緻化 */
+/* 圈圈叉叉面板比例自適應 */
 .board {
     display: grid;
-    grid-template-columns: repeat(3, 110px);
-    grid-gap: 10px;
+    grid-template-columns: repeat(3, 1fr); /* 切成三等分 */
+    grid-gap: 8px;
+    width: 100%;
+    max-width: 280px;
     margin: 0 auto;
-    justify-content: center;
     background: rgba(255, 255, 255, 0.05);
     padding: 10px;
     border-radius: 15px;
+    box-sizing: border-box;
 }
 
 .cell {
-    width: 110px;
-    height: 110px;
+    width: 100%;
+    height: auto;
+    aspect-ratio: 1 / 1; /* 保持正方形 */
     background: #1e1e2f;
     border-radius: 10px;
-    font-size: 4.5em;
+    font-size: 3rem; /* 配合方塊稍微縮小字體 */
     font-weight: bold;
     display: flex;
     align-items: center;
@@ -301,74 +277,35 @@ h3 {
     box-shadow: inset 0 0 10px rgba(0,0,0,0.5);
 }
 
-.cell:hover {
-    background: #25253b;
-    box-shadow: inset 0 0 15px rgba(0,0,0,0.8);
-}
-
-.cell:active {
-    transform: scale(0.95);
-}
-
-/* 給 O 和 X 不同的霓虹光顏色 */
-.cell.mark-o {
-    color: #00d2fc;
-    text-shadow: 0 0 20px rgba(0, 210, 252, 0.8);
-}
-
-.cell.mark-x {
-    color: #e94560;
-    text-shadow: 0 0 20px rgba(233, 69, 96, 0.8);
-}
+.cell:hover { background: #25253b; box-shadow: inset 0 0 15px rgba(0,0,0,0.8); }
+.cell:active { transform: scale(0.95); }
+.cell.mark-o { color: #00d2fc; text-shadow: 0 0 20px rgba(0, 210, 252, 0.8); }
+.cell.mark-x { color: #e94560; text-shadow: 0 0 20px rgba(233, 69, 96, 0.8); }
 
 #leave-game-btn {
     background: rgba(233, 69, 96, 0.2);
     border: 1px solid #e94560;
     color: #e94560;
     box-shadow: none;
+    width: 80%;
+    max-width: 250px;
 }
 
-#leave-game-btn:hover {
-    background: #e94560;
-    color: white;
-    box-shadow: 0 6px 20px rgba(233, 69, 96, 0.4);
-}
-
-/* 自訂彈窗樣式 */
-#custom-alert-modal {
-    position: fixed;
-    top: 0;
-    left: 0;
-    width: 100%;
-    height: 100%;
-    background: rgba(15, 15, 25, 0.85);
-    backdrop-filter: blur(8px);
-    -webkit-backdrop-filter: blur(8px);
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    z-index: 2000; /* 確保高於 game-window 的 1000 */
-}
+#leave-game-btn:hover { background: #e94560; color: white; box-shadow: 0 6px 20px rgba(233, 69, 96, 0.4); }
 
 .custom-alert-box {
     background: rgba(255, 255, 255, 0.05);
     border: 1px solid rgba(0, 210, 252, 0.5);
-    padding: 40px;
+    padding: 30px;
     border-radius: 20px;
-    box-shadow: 0 10px 40px rgba(0, 210, 252, 0.2);
     text-align: center;
-    color: #fff;
-    min-width: 300px;
+    width: 85%;
+    max-width: 300px;
     animation: popIn 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+    box-sizing: border-box;
 }
 
-.custom-alert-box h3 {
-    margin: 0 0 25px 0;
-    font-size: 1.5rem;
-    color: #00d2fc;
-    text-shadow: 0 2px 10px rgba(0,0,0,0.5);
-    border: none;
-}
+.custom-alert-box h3 { font-size: 1.2rem; margin: 0 0 20px 0; }
 
 @keyframes popIn {
     0% { transform: scale(0.8); opacity: 0; }
