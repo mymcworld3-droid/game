@@ -88,7 +88,7 @@ io.on('connection', (socket) => {
         if (roomId && rooms[roomId]) {
             // 如果離開的是遊戲玩家
             if (rooms[roomId].players.includes(socket.id)) {
-                io.to(roomId).emit('player_disconnected'); // 通知房間內其他人退出
+                socket.to(roomId).emit('player_disconnected'); //🔥 改用 socket.to()，只發送給房間內「除了自己以外」的人
                 delete rooms[roomId]; // 刪除房間
                 
                 // 把原本在該房間的所有玩家與觀戰者狀態強制設回 idle
