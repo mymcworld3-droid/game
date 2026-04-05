@@ -35,7 +35,13 @@ io.on('connection', (socket) => {
                 players[socket.id].roomId = roomId;
                 socket.join(roomId);
                 
-                io.to(roomId).emit('game_start', { roomId: roomId, players: rooms[roomId].players });
+                rooms[roomId].state.symbols[socket.id] = 'X'; //🔥 分配標記 X 給第二位玩家
+                
+                io.to(roomId).emit('game_start', { 
+                    roomId: roomId, 
+                    players: rooms[roomId].players,
+                    state: rooms[roomId].state //🔥 將包含回合與標記的 state 傳給前端
+                });
                 io.emit('update_player_list', players);
                 joined = true;
                 break;
@@ -44,7 +50,16 @@ io.on('connection', (socket) => {
 
         if (!joined) {
             const newRoomId = 'room_' + socket.id;
-            rooms[newRoomId] = { game: 'tictactoe', players: [socket.id], spectators: [], state: { board: Array(9).fill(null), turn: socket.id } };
+            rooms[newRoomId] = { 
+                game: 'tictactoe', 
+                players: [socket.id], 
+                spectators: [], 
+                state: { 
+                    board: Array(9).fill(null), 
+                    turn: socket.id, //🔥 記錄現在是誰的回合
+                    symbols: { [socket.id]: 'O' } //🔥 房主先手，標記為 O
+                } 
+            };
             players[socket.id].status = 'playing';
             players[socket.id].roomId = newRoomId;
             socket.join(newRoomId);
@@ -53,7 +68,7 @@ io.on('connection', (socket) => {
             io.emit('update_player_list', players);
         }
     });
-
+    
     // 處理觀戰
     socket.on('spectate', (targetSocketId) => {
         if (!players[socket.id] || !players[targetSocketId]) return;
@@ -65,18 +80,32 @@ io.on('connection', (socket) => {
             players[socket.id].roomId = targetRoomId;
             socket.join(targetRoomId);
             
-            socket.emit('spectate_start', rooms[targetRoomId].state);
+            //🔥 將 roomId 與 state 一起包裝傳送，讓前端好解析
+            socket.emit('spectate_start', { roomId: targetRoomId, state: rooms[targetRoomId].state });
             io.emit('update_player_list', players);
         }
     });
 
-    // 接收遊戲操作 (這段保留原本的，加在它下面)
+    // 接收遊戲操作
     socket.on('make_move', (data) => {
         const { roomId, index } = data;
         const room = rooms[roomId];
-        if (room && room.game === 'tictactoe') {
-            room.state.board[index] = socket.id;
-            io.to(roomId).emit('update_board', { index: index, player: socket.id });
+        //🔥 增加判斷：確保遊戲是圈圈叉叉，並且真的是該玩家的回合
+        if (room && room.game === 'tictactoe' && room.state.turn === socket.id) {
+            //🔥 確保該格子是空的才允許下棋
+            if (room.state.board[index] === null) {
+                const mark = room.state.symbols[socket.id];
+                room.state.board[index] = mark; //🔥 記錄真實的 O 或 X
+                
+                //🔥 換對手回合
+                room.state.turn = (room.players[0] === socket.id) ? room.players[1] : room.players[0];
+                
+                io.to(roomId).emit('update_board', { 
+                    index: index, 
+                    mark: mark, //🔥 傳送標記
+                    nextTurn: room.state.turn //🔥 傳送下一個回合是誰
+                });
+            }
         }
     });
 
