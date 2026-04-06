@@ -2,6 +2,7 @@ const express = require('express');
 const http = require('http');
 const { Server } = require('socket.io');
 const path = require('path');
+const fs = require('fs'); //🔥 新增檔案系統模組，用來讀取資料夾
 
 const app = express();
 const server = http.createServer(app);
@@ -9,12 +10,49 @@ const io = new Server(server);
 
 app.use(express.static(path.join(__dirname, 'public')));
 
+// ==========================================
+// 🔥 終極版：自動掃描遊戲目錄
+// ==========================================
+const jsDir = path.join(__dirname, 'public', 'js');
+let availableGames = [];
+
+function scanGames() {
+    availableGames = [];
+    try {
+        // 讀取 public/js 底下所有的 .js 檔案 (排除 lobby.js 主控台)
+        const files = fs.readdirSync(jsDir).filter(f => f.endsWith('.js') && f !== 'lobby.js');
+        
+        for (const file of files) {
+            const content = fs.readFileSync(path.join(jsDir, file), 'utf-8');
+            
+            // 尋找檔案內的魔法註解
+            const nameMatch = content.match(/\/\/\s*@GAME_NAME:\s*(.+)/);
+            const descMatch = content.match(/\/\/\s*@GAME_DESC:\s*(.+)/);
+            
+            if (nameMatch) {
+                availableGames.push({
+                    id: file.replace('.js', ''),
+                    name: nameMatch[1].trim(),
+                    desc: descMatch ? descMatch[1].trim() : '無說明',
+                    script: `/js/${file}`
+                });
+            }
+        }
+        console.log('✅ 自動偵測到遊戲:', availableGames.map(g => g.name).join(', '));
+    } catch (err) {
+        console.error('掃描遊戲失敗:', err);
+    }
+}
+scanGames(); //🔥 啟動伺服器時執行一次掃描
+
 // 狀態管理
-const players = {}; // { socketId: { username, status: 'idle' | 'playing' | 'spectating', roomId } }
-const rooms = {};   // { roomId: { game: 'tictactoe', players: [id1, id2], spectators: [id...], state: {...} } }
+const players = {}; 
+const rooms = {};   
 
 io.on('connection', (socket) => {
     console.log('新使用者連線:', socket.id);
+
+    socket.emit('init_games', availableGames); //🔥 新玩家連線時，直接把掃描到的遊戲清單發給他
 
     // 處理登入
     socket.on('login', (username) => {
