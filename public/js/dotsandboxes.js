@@ -20,7 +20,7 @@
         winner: null
     };
 
-    // 🔥 動態注入專屬 CSS (完美融入 19.5:9 手機比例)
+    // 動態注入專屬 CSS (完美融入 19.5:9 手機比例)
     const style = document.createElement('style');
     style.innerHTML = `
         .dab-board {
@@ -51,14 +51,13 @@
     `;
     document.head.appendChild(style);
 
-    // 綁定動態生成的大廳按鈕
-    setTimeout(() => {
-        document.getElementById('btn-dotsandboxes').addEventListener('click', () => {
-            socket.emit('join_game', 'dotsandboxes');
-            gameWindow.style.display = 'flex';
-            gameContent.innerHTML = '<h3>連線中，尋找對手...</h3>';
-        });
-    }, 100);
+    // 🔥 補上等待對手的事件 (之前缺失了導致畫面卡在連線中)
+    socket.on('waiting_for_opponent', () => {
+        // 確保目前是在我們的遊戲畫面
+        if(gameWindow.style.display === 'flex' && gameContent.innerHTML.includes('連線中')) {
+            gameContent.innerHTML = '<h3>等待對手加入...</h3>';
+        }
+    });
 
     socket.on('game_start', (data) => {
         if (data.game !== 'dotsandboxes') return;
@@ -123,8 +122,8 @@
         gameContent.innerHTML = `
             <h3 style="margin-bottom: 2cqw;">點格棋對戰</h3>
             <div class="dab-scoreboard">
-                <span class="dab-score-p1" id="dab-score-p1">紅方: 0</span>
-                <span class="dab-score-p2" id="dab-score-p2">藍方: 0</span>
+                <span class="dab-score-p1" id="dab-score-p1">紅方: ${gameState.scores.P1}</span>
+                <span class="dab-score-p2" id="dab-score-p2">藍方: ${gameState.scores.P2}</span>
             </div>
             <h4 id="dab-turn-display" style="margin-bottom: 4cqw; font-size: 3.5cqw; transition: color 0.3s;"></h4>
             
