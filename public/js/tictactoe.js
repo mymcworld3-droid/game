@@ -1,3 +1,5 @@
+// @GAME_NAME: 圈圈叉叉 (Tic-Tac-Toe)
+// @GAME_DESC: 經典 3x3 益智對戰
 (() => {
     const socket = window.socket;
     const { gameWindow, gameContent } = window.UI;
