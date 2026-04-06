@@ -10,13 +10,39 @@
 <body>
     <div id="login-screen">
         <h1>益智對戰平台</h1>
-        <input type="text" id="username-input" placeholder="輸入你的玩家暱稱">
-        <button id="login-btn">進入大廳</button>
+        
+        <div class="auth-tabs">
+            <button class="auth-tab active" id="tab-guest">訪客</button>
+            <button class="auth-tab" id="tab-login">登入</button>
+            <button class="auth-tab" id="tab-register">註冊</button>
+        </div>
+
+        <div id="form-guest" class="auth-form active">
+            <p style="margin-bottom: 2cqw; color: #aaa; font-size: 3.5cqw;">以訪客身分快速進入大廳</p>
+            <button id="btn-guest-login">快速進入</button>
+        </div>
+
+        <div id="form-login" class="auth-form">
+            <input type="text" id="login-account" placeholder="輸入帳號">
+            <input type="password" id="login-password" placeholder="輸入密碼">
+            <button id="btn-login">登入</button>
+        </div>
+
+        <div id="form-register" class="auth-form">
+            <input type="text" id="reg-account" placeholder="設定帳號 (用來登入)">
+            <input type="password" id="reg-password" placeholder="設定密碼">
+            <input type="text" id="reg-nickname" placeholder="遊戲暱稱 (大廳顯示)">
+            <button id="btn-register">註冊帳號</button>
+        </div>
     </div>
 
     <div id="lobby-screen" style="display: none;">
-        <div class="header">
+        <div class="header" style="justify-content: space-between;">
             <h2 id="welcome-text"></h2>
+            <div id="profile-container" style="display: none; align-items: center; gap: 2cqw;">
+                <span id="exp-display" style="color: #fbbf24; font-weight: bold; font-size: 3.5cqw;">EXP: 0</span>
+                <button id="btn-change-name" style="padding: 1.5cqw 3cqw; font-size: 3cqw; width: auto; background: rgba(255,255,255,0.1); border: 1px solid rgba(255,255,255,0.3);">改名</button>
+            </div>
         </div>
         <div class="main-container">
             <div class="game-list-container">
