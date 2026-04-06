@@ -1,4 +1,3 @@
-// 全域變數掛載，讓各個分離的遊戲腳本都能調用
 window.socket = io();
 window.UI = {
     gameWindow: document.getElementById('game-window'),
@@ -10,21 +9,19 @@ window.UI = {
 };
 
 // ==========================================
-// 🔥 自動接收伺服器掃描到的遊戲列表並動態生成
+// 自動接收伺服器掃描到的遊戲列表並動態生成
 // ==========================================
 window.socket.on('init_games', (games) => {
     const gameListContainer = document.getElementById('dynamic-game-list');
     if (!gameListContainer) return;
-    gameListContainer.innerHTML = ''; // 清空重置
+    gameListContainer.innerHTML = ''; 
     
     games.forEach(game => {
-        // 1. 生成按鈕
         const card = document.createElement('div');
         card.className = 'game-card';
         card.id = `btn-${game.id}`;
         card.innerHTML = `<h4>${game.name}</h4><p>${game.desc}</p>`;
         
-        // 🔥 集中在這裡綁定點擊加入事件，徹底解決各遊戲 setTimeout 找不到按鈕的 Bug
         card.addEventListener('click', () => {
             window.socket.emit('join_game', game.id);
             window.UI.gameWindow.style.display = 'flex';
@@ -33,7 +30,6 @@ window.socket.on('init_games', (games) => {
         
         gameListContainer.appendChild(card);
 
-        // 2. 自動載入該遊戲的 JS 腳本 (加上防重複載入機制)
         if (!document.querySelector(`script[src="${game.script}"]`)) {
             const script = document.createElement('script');
             script.src = game.script;
@@ -42,9 +38,6 @@ window.socket.on('init_games', (games) => {
     });
 });
 
-// ==========================================
-// 統一共用 UI 邏輯 (離開房間、斷線彈窗)
-// ==========================================
 window.UI.leaveGameBtn.addEventListener('click', () => {
     window.UI.gameWindow.style.display = 'none';
     window.socket.emit('leave_game'); 
@@ -63,17 +56,81 @@ window.socket.on('player_disconnected', () => {
 });
 
 // ==========================================
-// 登入與玩家列表邏輯
+// 帳號分頁與登入邏輯
 // ==========================================
-let myUsername = '';
 const loginScreen = document.getElementById('login-screen');
 const lobbyScreen = document.getElementById('lobby-screen');
-const usernameInput = document.getElementById('username-input');
-const loginBtn = document.getElementById('login-btn');
 const welcomeText = document.getElementById('welcome-text');
 const playerListUl = document.getElementById('player-list-ul');
+const profileContainer = document.getElementById('profile-container');
+const expDisplay = document.getElementById('exp-display');
 
-// 動態注入專屬加入按鈕與等待狀態的 CSS
+const tabs = { guest: document.getElementById('tab-guest'), login: document.getElementById('tab-login'), register: document.getElementById('tab-register') };
+const forms = { guest: document.getElementById('form-guest'), login: document.getElementById('form-login'), register: document.getElementById('form-register') };
+
+function switchAuthTab(type) {
+    Object.values(tabs).forEach(t => t.classList.remove('active'));
+    Object.values(forms).forEach(f => f.classList.remove('active'));
+    tabs[type].classList.add('active');
+    forms[type].classList.add('active');
+}
+tabs.guest.onclick = () => switchAuthTab('guest');
+tabs.login.onclick = () => switchAuthTab('login');
+tabs.register.onclick = () => switchAuthTab('register');
+
+// 訪客登入
+document.getElementById('btn-guest-login').onclick = () => window.socket.emit('auth_guest');
+
+// 註冊
+document.getElementById('btn-register').onclick = () => {
+    const acc = document.getElementById('reg-account').value.trim();
+    const pwd = document.getElementById('reg-password').value.trim();
+    const nick = document.getElementById('reg-nickname').value.trim();
+    if (!acc || !pwd || !nick) return alert('請填寫完整資訊！');
+    window.socket.emit('auth_register', { account: acc, password: pwd, nickname: nick });
+};
+
+window.socket.on('register_result', (res) => {
+    if (res.success) {
+        alert('註冊成功！請切換到登入頁面進行登入。');
+        switchAuthTab('login');
+    } else alert('註冊失敗：' + res.msg);
+});
+
+// 登入
+document.getElementById('btn-login').onclick = () => {
+    const acc = document.getElementById('login-account').value.trim();
+    const pwd = document.getElementById('login-password').value.trim();
+    if (!acc || !pwd) return alert('請輸入帳號密碼！');
+    window.socket.emit('auth_login', { account: acc, password: pwd });
+};
+
+window.socket.on('login_result', (res) => alert('登入失敗：' + res.msg));
+
+window.socket.on('login_success', (userData) => {
+    loginScreen.style.display = 'none';
+    lobbyScreen.style.display = 'block';
+    welcomeText.textContent = `歡迎，${userData.username}！`;
+    
+    if (!userData.isGuest) {
+        profileContainer.style.display = 'flex';
+        expDisplay.textContent = `EXP: ${userData.exp}`;
+    }
+});
+
+window.socket.on('update_profile', (userData) => {
+    welcomeText.textContent = `歡迎，${userData.username}！`;
+    expDisplay.textContent = `EXP: ${userData.exp}`;
+});
+
+document.getElementById('btn-change-name').onclick = () => {
+    const newName = prompt('請輸入新的遊戲暱稱：');
+    if (newName && newName.trim() !== '') window.socket.emit('change_name', newName.trim());
+};
+
+// ==========================================
+// 大廳玩家列表與狀態更新
+// ==========================================
 const dynamicStyle = document.createElement('style');
 dynamicStyle.innerHTML = `
     .status-waiting { color: #fbbf24; font-weight: 600; }
@@ -82,38 +139,19 @@ dynamicStyle.innerHTML = `
 `;
 document.head.appendChild(dynamicStyle);
 
-loginBtn.addEventListener('click', () => {
-    const name = usernameInput.value.trim();
-    if (name) {
-        myUsername = name;
-        window.socket.emit('login', name);
-        loginScreen.style.display = 'none';
-        lobbyScreen.style.display = 'block';
-        welcomeText.textContent = `歡迎，${name}！`;
-    }
-});
-
 window.socket.on('update_player_list', (players) => {
     playerListUl.innerHTML = '';
     for (const id in players) {
         const player = players[id];
         const li = document.createElement('li');
         
-        let statusText = '閒置中';
-        if (player.status === 'playing') statusText = '遊戲中';
-        else if (player.status === 'spectating') statusText = '觀戰中';
-        else if (player.status === 'waiting') statusText = '等待對手';
-
-        let statusClass = `status-${player.status}`;
+        let statusText = player.status === 'playing' ? '遊戲中' : (player.status === 'spectating' ? '觀戰中' : (player.status === 'waiting' ? '等待對手' : '閒置中'));
         
-        let innerHTML = `<span>${player.username} <small class="${statusClass}">(${statusText})</small></span>`;
+        let innerHTML = `<span>${player.username} <small class="status-${player.status}">(${statusText})</small></span>`;
         
         if (id !== window.socket.id) {
-            if (player.status === 'playing') {
-                innerHTML += `<button class="spectate-btn" onclick="spectatePlayer('${id}')">觀戰</button>`;
-            } else if (player.status === 'waiting') {
-                innerHTML += `<button class="spectate-btn join-btn" onclick="joinPlayer('${id}')">加入</button>`;
-            }
+            if (player.status === 'playing') innerHTML += `<button class="spectate-btn" onclick="spectatePlayer('${id}')">觀戰</button>`;
+            else if (player.status === 'waiting') innerHTML += `<button class="spectate-btn join-btn" onclick="joinPlayer('${id}')">加入</button>`;
         }
         
         li.innerHTML = innerHTML;
