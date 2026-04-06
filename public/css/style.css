@@ -1,6 +1,6 @@
 /* 讓整個畫面在桌機上置中，並填滿深色背景 */
 html {
-    background-color: #050508; /* 桌機兩側的背景色變更深，凸顯主體 */
+    background-color: #050508;
     display: flex;
     justify-content: center;
     align-items: center;
@@ -16,40 +16,31 @@ body {
     background: linear-gradient(135deg, #1e1e2f, #2a2a40);
     color: #ffffff;
     
-    /* 🔥 設定為 Container，讓內部所有元素都可以依照 body 的寬度等比例縮放 */
     container-type: inline-size;
     
-    /* 📱 手機模式：預設填滿螢幕 */
     width: 100vw;
-    height: 100dvh; /* 支援手機瀏覽器真實可視高度 */
+    height: 100dvh; 
     position: relative;
     overflow: hidden; 
 }
 
-/* 💻 桌機/平板模式：強制變成一個「有外框且無圓邊」的虛擬手機 */
+/* 桌機/平板模式：強制變成一個「有外框且無圓邊」的虛擬手機 */
 @media (min-width: 480px) {
     body {
-        /* 🔥 讓手機容器的高度永遠適應螢幕，最大為 90vh，但如果螢幕太窄則依寬度等比縮小 */
-        height: min(90vh, calc(100vw * 2 / 1)); /* //🔥 配合 2:1 高寬比進行計算 */
-        max-height: none; /* 解除絕對高度限制，讓它可以在大螢幕完美放大 */
+        height: min(90vh, calc(100vw * 2 / 1)); /* 2:1 高寬比 */
+        max-height: none; 
         
-        /* 🔥 鎖死寬度，根據高度自動計算，保持絕對的手機比例！ */
         width: auto;
-        aspect-ratio: 1 / 2; /* //🔥 將比例精準鎖定為高寬比 2:1 (即寬高比 1:2) */
+        aspect-ratio: 1 / 2; /* 2:1 高寬比 */
         
-        border-radius: 0; /* 🔥 移除圓邊，改為直角 */
+        border-radius: 0; 
         box-shadow: 
-            0 0 0 10px #12121c,  /* 內圈黑邊 */
-            0 0 0 12px #333,     /* 外圈金屬邊 */
-            0 20px 50px rgba(0, 0, 0, 0.8), /* 底部陰影 */
-            0 0 40px rgba(0, 210, 252, 0.2); /* 科技感發光 */
+            0 0 0 10px #12121c,
+            0 0 0 12px #333,
+            0 20px 50px rgba(0, 0, 0, 0.8),
+            0 0 40px rgba(0, 210, 252, 0.2);
     }
 }
-
-/* =========================================
-   以下所有的尺寸都已換算為 cqw (容器寬度比例)
-   確保在大螢幕或小螢幕上都能 100% 完美等比縮放
-========================================= */
 
 /* 登入畫面精緻化 */
 #login-screen {
@@ -73,7 +64,15 @@ body {
     -webkit-text-fill-color: transparent;
 }
 
-#username-input {
+/* 登入分頁樣式 */
+.auth-tabs { display: flex; width: 85%; margin-bottom: 5cqw; background: rgba(255,255,255,0.1); border-radius: 7.7cqw; overflow: hidden; box-shadow: 0 1cqw 3cqw rgba(0,0,0,0.2); }
+.auth-tab { flex: 1; padding: 3cqw; background: transparent; color: #aaa; border-radius: 0; box-shadow: none; width: auto; font-size: 3.8cqw; transition: 0.3s; border: none; cursor: pointer; }
+.auth-tab.active { background: linear-gradient(90deg, #00d2fc, #4a00e0); color: white; font-weight: 600; }
+.auth-form { width: 100%; display: none; flex-direction: column; align-items: center; animation: fadeIn 0.3s; }
+.auth-form.active { display: flex; }
+@keyframes fadeIn { from { opacity: 0; transform: translateY(2cqw); } to { opacity: 1; transform: translateY(0); } }
+
+input[type="text"], input[type="password"] {
     padding: 3.8cqw 6.4cqw;
     font-size: 4.5cqw;
     border: none;
@@ -84,12 +83,12 @@ body {
     color: white;
     box-shadow: 0 1cqw 3.8cqw rgba(0,0,0,0.2);
     transition: box-shadow 0.3s, background 0.3s;
-    margin-bottom: 6.4cqw;
+    margin-bottom: 4cqw;
     box-sizing: border-box;
 }
 
-#username-input::placeholder { color: rgba(255, 255, 255, 0.5); }
-#username-input:focus { background: rgba(255, 255, 255, 0.15); box-shadow: 0 0 5cqw rgba(0, 210, 252, 0.5); }
+input[type="text"]::placeholder, input[type="password"]::placeholder { color: rgba(255, 255, 255, 0.5); }
+input[type="text"]:focus, input[type="password"]:focus { background: rgba(255, 255, 255, 0.15); box-shadow: 0 0 5cqw rgba(0, 210, 252, 0.5); }
 
 button {
     padding: 3cqw 7.7cqw;
@@ -108,7 +107,7 @@ button {
 button:hover { transform: translateY(-0.8cqw); box-shadow: 0 2cqw 6.4cqw rgba(0, 210, 252, 0.4); }
 button:active { transform: translateY(0.2cqw); }
 
-/* 大廳排版 (改為上下排列) */
+/* 大廳排版 */
 #lobby-screen { height: 100%; }
 
 .header {
@@ -133,7 +132,6 @@ button:active { transform: translateY(0.2cqw); }
     overflow-y: auto;
 }
 
-/* 區塊共用毛玻璃與陰影效果 */
 .game-list-container, .player-list-container {
     background: rgba(255, 255, 255, 0.03);
     backdrop-filter: blur(10px);
@@ -152,12 +150,10 @@ h3 {
     padding-bottom: 2.5cqw; margin-bottom: 3.8cqw; color: #e0e0e0; font-weight: 600; font-size: 4.5cqw;
 }
 
-/* 遊戲與玩家列表 */
 .game-list, #player-list-ul {
     overflow-y: auto; display: flex; flex-direction: column; gap: 3cqw; padding-right: 1.3cqw;
 }
 
-/* 自訂精緻捲軸 */
 ::-webkit-scrollbar { width: 1cqw; }
 ::-webkit-scrollbar-track { background: rgba(0, 0, 0, 0.1); border-radius: 2.5cqw; }
 ::-webkit-scrollbar-thumb { background: rgba(255, 255, 255, 0.2); border-radius: 2.5cqw; }
@@ -178,7 +174,6 @@ h3 {
 .game-card h4 { margin: 0 0 1.3cqw 0; font-size: 4.5cqw; color: #fff; }
 .game-card p { margin: 0; color: #aaa; font-size: 3.5cqw; }
 
-/* 玩家列表 */
 #player-list-ul { list-style: none; padding: 0; margin: 0; }
 #player-list-ul li {
     display: flex; justify-content: space-between; align-items: center;
@@ -195,7 +190,6 @@ h3 {
     box-shadow: none; border-radius: 3.8cqw;
 }
 
-/* 遊戲視窗與彈窗 */
 #game-window, #custom-alert-modal {
     position: absolute; 
     top: 0; left: 0; width: 100%; height: 100%;
@@ -215,7 +209,6 @@ h3 {
 #game-content h3 { font-size: 6.1cqw; margin-bottom: 5cqw; border: none; }
 #turn-display { font-size: 4.1cqw !important; margin-bottom: 3.8cqw !important; }
 
-/* 圈圈叉叉面板比例自適應 */
 .board {
     display: grid;
     grid-template-columns: repeat(3, 1fr);
@@ -250,5 +243,4 @@ h3 {
     animation: popIn 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275); box-sizing: border-box;
 }
 .custom-alert-box h3 { font-size: 4.9cqw; margin: 0 0 5cqw 0; }
-
 @keyframes popIn { 0% { transform: scale(0.8); opacity: 0; } 100% { transform: scale(1); opacity: 1; } }
