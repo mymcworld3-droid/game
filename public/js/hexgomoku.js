@@ -1,4 +1,4 @@
-// @GAME_NAME: 六邊形五子棋 (Hex Gomoku)// @GAME_NAME: 六邊形五子棋 (Hex Gomoku)
+// @GAME_NAME: 六邊形五子棋 (Hex Gomoku)
 // @GAME_DESC: 無邊界！緊連落子，三軸連線對決！
 (() => {
     const socket = window.socket;
