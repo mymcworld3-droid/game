@@ -10,6 +10,29 @@ window.UI = {
 };
 
 // ==========================================
+// 🔥 自動接收伺服器掃描到的遊戲列表並動態生成
+// ==========================================
+window.socket.on('init_games', (games) => {
+    const gameListContainer = document.getElementById('dynamic-game-list');
+    if (!gameListContainer) return;
+    gameListContainer.innerHTML = ''; // 清空重置
+    
+    games.forEach(game => {
+        // 1. 生成按鈕
+        const card = document.createElement('div');
+        card.className = 'game-card';
+        card.id = `btn-${game.id}`;
+        card.innerHTML = `<h4>${game.name}</h4><p>${game.desc}</p>`;
+        gameListContainer.appendChild(card);
+
+        // 2. 自動載入該遊戲的 JS 腳本
+        const script = document.createElement('script');
+        script.src = game.script;
+        document.body.appendChild(script);
+    });
+});
+
+// ==========================================
 // 🔥 遊戲註冊表 (未來新增遊戲，只需在這裡加一筆資料)
 // ==========================================
 const AVAILABLE_GAMES = [
