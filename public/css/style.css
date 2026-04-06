@@ -30,12 +30,12 @@ body {
 @media (min-width: 480px) {
     body {
         /* 🔥 讓手機容器的高度永遠適應螢幕，最大為 90vh，但如果螢幕太窄則依寬度等比縮小 */
-        height: min(90vh, calc(100vw * 844 / 390));
+        height: min(90vh, calc(100vw * 19.5 / 9)); /* //🔥 配合 19.5:9 高寬比進行計算 */
         max-height: none; /* 解除絕對高度限制，讓它可以在大螢幕完美放大 */
         
         /* 🔥 鎖死寬度，根據高度自動計算，保持絕對的手機比例！ */
         width: auto;
-        aspect-ratio: 390 / 844; 
+        aspect-ratio: 9 / 19.5; /* //🔥 將比例精準鎖定為高寬比 19.5:9 (即寬高比 9:19.5) */
         
         border-radius: 0; /* 🔥 移除圓邊，改為直角 */
         box-shadow: 
