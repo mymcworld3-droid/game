@@ -6,7 +6,7 @@
 
     let currentRoomId = null;
     let isMyTurn = false;
-    let mySymbol = ''; // 'B' (黑子) 或 'W' (白子)
+    let mySymbol = ''; // 'R' (紅方) 或 'B' (藍方)
     
     // 遊戲狀態：無邊界，board 將以 "q,r" 字串作為 key 儲存座標
     let gameState = {
@@ -17,7 +17,7 @@
         winner: null
     };
 
-    // 🔥 動態注入專屬 CSS (包含六邊形與綠色發光特效)
+    // 🔥 動態注入專屬 CSS (包含六邊形棋盤與紅藍六邊形棋子)
     const style = document.createElement('style');
     style.innerHTML = `
         .hex-viewport {
@@ -41,7 +41,6 @@
 
         .hex-cell {
             position: absolute;
-            /* width: 6.062cqw, height: 7cqw 已經在 JS 中動態給予 */
             cursor: default;
         }
 
@@ -59,7 +58,7 @@
             justify-content: center;
         }
 
-        /* 🔥 可以下子的地方會有綠色光 */
+        /* 可以下子的地方會有綠色光 */
         .hex-cell.valid {
             cursor: pointer;
             z-index: 10;
@@ -72,29 +71,23 @@
             background: rgba(74, 222, 128, 0.5);
         }
 
-        /* 棋子樣式 */
+        /* 🔥 六邊形棋子樣式 (紅與藍) */
         .hex-piece {
-            width: 75%; height: 75%;
-            border-radius: 50%;
+            width: 80%; height: 80%;
+            /* 取代圓角的 border-radius，改用 clip-path 裁切成六邊形 */
+            clip-path: polygon(50% 0%, 100% 25%, 100% 75%, 50% 100%, 0% 75%, 0% 25%);
             animation: dropIn 0.2s ease-out;
-            box-shadow: 0 0.5cqw 1.5cqw rgba(0,0,0,0.8);
+            /* clip-path 會裁掉 box-shadow，改用 drop-shadow 產生陰影 */
+            filter: drop-shadow(0 0.5cqw 1cqw rgba(0,0,0,0.8));
         }
-        .hex-black { background: radial-gradient(circle at 30% 30%, #666, #000); }
-        .hex-white { background: radial-gradient(circle at 30% 30%, #fff, #bbb); }
+        .hex-red { background: radial-gradient(circle at 30% 30%, #ff6b6b, #cc0000); }
+        .hex-blue { background: radial-gradient(circle at 30% 30%, #4da6ff, #0055cc); }
+        
+        @keyframes dropIn { 0% { transform: scale(1.5); opacity: 0; } 100% { transform: scale(1); opacity: 1; } }
     `;
     document.head.appendChild(style);
 
-    // 等待大廳生成按鈕
-    setTimeout(() => {
-        const btn = document.getElementById('btn-hexgomoku');
-        if(btn) {
-            btn.addEventListener('click', () => {
-                socket.emit('join_game', 'hexgomoku');
-                gameWindow.style.display = 'flex';
-                gameContent.innerHTML = '<h3>連線中，尋找對手...</h3>';
-            });
-        }
-    }, 100);
+    // 🔥 刪除原本的 setTimeout 按鈕綁定，交給 lobby.js 統一處理，徹底解決雙重加入房間的 Bug！
 
     socket.on('waiting_for_opponent', () => {
         if(gameWindow.style.display === 'flex' && gameContent.innerHTML.includes('連線中')) {
@@ -108,9 +101,9 @@
         const p1 = data.players[0];
         const p2 = data.players[1];
         
-        // P1為黑子先手
+        // P1為紅方先手，P2為藍方
         gameState = {
-            board: {}, turn: p1, symbols: { [p1]: 'B', [p2]: 'W' },
+            board: {}, turn: p1, symbols: { [p1]: 'R', [p2]: 'B' },
             isGameOver: false, winner: null
         };
         mySymbol = gameState.symbols[socket.id] || null;
@@ -123,7 +116,7 @@
     });
 
     socket.on('spectate_start', (data) => {
-        if (data.game !== 'hexgomoku' && (!data.state.symbols || !Object.values(data.state.symbols).includes('B'))) return; 
+        if (data.game !== 'hexgomoku' && (!data.state.symbols || !Object.values(data.state.symbols).includes('R'))) return; 
         currentRoomId = data.roomId;
         gameState = data.state.board ? data.state : { board: {}, turn: '', symbols: {}, isGameOver: false, winner: null };
         mySymbol = null;
@@ -142,20 +135,18 @@
     });
 
     function renderBoard() {
-        // 設定六邊形尺寸 (cqw)
         const size = 3.5; 
-        const width = Math.sqrt(3) * size; // 約 6.062
-        const height = 2 * size;           // 7
-        const cx = 100; // 中心點 X
-        const cy = 100; // 中心點 Y
+        const width = Math.sqrt(3) * size; 
+        const height = 2 * size;           
+        const cx = 100; 
+        const cy = 100; 
 
         let cellsHTML = '';
-        const radius = 12; // 預先渲染半徑 12 的大網格，供玩家滑動
+        const radius = 12; // 預先渲染大網格，供玩家滑動
 
         for (let q = -radius; q <= radius; q++) {
             for (let r = -radius; r <= radius; r++) {
                 if (Math.abs(q + r) <= radius) {
-                    // 六角座標轉絕對座標
                     const x = cx + width * (q + r / 2);
                     const y = cy + height * 0.75 * r;
                     
@@ -184,7 +175,6 @@
             </div>
         `;
 
-        // 將視角自動捲動到最中央 (0,0) 的位置
         setTimeout(() => {
             const vp = document.getElementById('hex-viewport');
             if(vp) {
@@ -193,12 +183,9 @@
             }
         }, 50);
 
-        // 綁定點擊事件
         document.querySelectorAll('.hex-cell').forEach(cell => {
             cell.addEventListener('click', (e) => {
-                // 如果不能下，或是該格子沒有被亮綠光 (.valid)，就不執行
                 if (!isMyTurn || gameState.isGameOver) return;
-                
                 const targetCell = e.target.closest('.hex-cell');
                 if (!targetCell || !targetCell.classList.contains('valid')) return;
 
@@ -217,12 +204,9 @@
         }
     }
 
-    // 🔥 核心邏輯：計算並發亮所有合法的相鄰落子點
+    // 計算並發亮所有合法的相鄰落子點
     function updateValidMoves() {
-        // 先移除所有的綠光
         document.querySelectorAll('.hex-cell.valid').forEach(el => el.classList.remove('valid'));
-
-        // 如果不是你的回合，或遊戲結束，就不顯示綠光
         if (!isMyTurn || gameState.isGameOver) return;
 
         const boardKeys = Object.keys(gameState.board);
@@ -234,25 +218,21 @@
             return;
         }
 
-        // 六角座標的 6 個鄰居方向
         const neighbors = [[1, 0], [0, 1], [-1, 1], [-1, 0], [0, -1], [1, -1]];
         const validSet = new Set();
 
-        // 掃描所有已落子的鄰居
         for (const key of boardKeys) {
             const [q, r] = key.split(',').map(Number);
             for (const [dq, dr] of neighbors) {
                 const nq = q + dq;
                 const nr = r + dr;
                 const nKey = `${nq},${nr}`;
-                // 如果鄰居位置還沒有棋子，就加入合法清單
                 if (!gameState.board[nKey]) {
                     validSet.add(nKey);
                 }
             }
         }
 
-        // 點亮所有合法的格子
         validSet.forEach(key => {
             const [q, r] = key.split(',');
             const el = document.getElementById(`hex-${q}-${r}`);
@@ -268,7 +248,8 @@
         if (!inner) return;
 
         const piece = document.createElement('div');
-        piece.className = `hex-piece ${mark === 'B' ? 'hex-black' : 'hex-white'}`;
+        // 🔥 套用新設計的紅藍樣式
+        piece.className = `hex-piece ${mark === 'R' ? 'hex-red' : 'hex-blue'}`;
         inner.appendChild(piece);
     }
 
@@ -281,7 +262,6 @@
             gameState.board[key] = mark;
             placePiece(key, mark);
             
-            // 判斷勝負
             const result = checkWin(gameState.board, q, r, mark);
             const isSpectator = (mySymbol === null);
 
@@ -296,7 +276,7 @@
             if (gameState.isGameOver) handleGameOverDisplay(isSpectator);
             else updateTurnDisplay(gameState.turn, isSpectator);
 
-            updateValidMoves(); // 換人後更新發光狀態
+            updateValidMoves(); 
             
             if (data.sender === socket.id) socket.emit('sync_state', { roomId: currentRoomId, state: gameState });
         }
@@ -315,17 +295,14 @@
         }
     });
 
-    // 六邊形連線判定 (檢查 3 個相交軸)
     function checkWin(board, lastQ, lastR, mark) {
-        const dirs = [[1, 0], [0, 1], [1, -1]]; // 六角形的三條連線軸
+        const dirs = [[1, 0], [0, 1], [1, -1]]; 
         for (let [dq, dr] of dirs) {
             let count = 1;
-            // 往正方向找
             for (let i = 1; i < 5; i++) {
                 if (board[`${lastQ + dq * i},${lastR + dr * i}`] === mark) count++;
                 else break;
             }
-            // 往反方向找
             for (let i = 1; i < 5; i++) {
                 if (board[`${lastQ - dq * i},${lastR - dr * i}`] === mark) count++;
                 else break;
@@ -341,13 +318,13 @@
         isMyTurn = false;
         if (!turnDisplay) return;
         
-        const winnerText = gameState.winner === 'B' ? '黑子' : '白子';
+        const winnerText = gameState.winner === 'R' ? '紅方' : '藍方';
         if (isSpectator) { turnDisplay.textContent = `遊戲結束！贏家是 ${winnerText}`; turnDisplay.style.color = '#00d2fc'; }
         else if (gameState.winner === mySymbol) { turnDisplay.textContent = '你贏了！🎉'; turnDisplay.style.color = '#4ade80'; }
         else { turnDisplay.textContent = '你輸了...'; turnDisplay.style.color = '#f87171'; }
         
         if (!isSpectator && actionsContainer) actionsContainer.style.display = 'block';
-        updateValidMoves(); // 遊戲結束，消去所有綠光
+        updateValidMoves(); 
     }
 
     function updateTurnDisplay(turnId, isSpectator = false) {
@@ -355,7 +332,7 @@
         if (!turnDisplay) return;
         
         if (isSpectator) { 
-            const turnText = gameState.symbols[turnId] === 'B' ? '黑子' : '白子';
+            const turnText = gameState.symbols[turnId] === 'R' ? '紅方' : '藍方';
             turnDisplay.textContent = `觀戰中 (輪到${turnText}下)`; turnDisplay.style.color = '#aaa'; isMyTurn = false; 
         } else {
             isMyTurn = (turnId === socket.id);
