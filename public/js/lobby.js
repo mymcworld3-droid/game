@@ -24,6 +24,12 @@ const AVAILABLE_GAMES = [
         name: '五子棋 (Gomoku)',
         desc: '15x15 黑白連線策略對決',
         script: '/js/gomoku.js'
+    },
+    {
+        id: 'dotsandboxes', //🔥 新增點格棋
+        name: '點格棋 (Dots and Boxes)',
+        desc: '連線佔地，取得額外回合！',
+        script: '/js/dotsandboxes.js'
     }
 ];
 
