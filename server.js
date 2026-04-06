@@ -18,7 +18,8 @@ io.on('connection', (socket) => {
 
     // 處理登入
     socket.on('login', (username) => {
-        players[socket.id] = { username: username, status: 'idle', roomId: null };
+        //🔥 新增 game 屬性記錄玩家正在玩哪款遊戲
+        players[socket.id] = { username: username, status: 'idle', roomId: null, game: null }; 
         io.emit('update_player_list', players);
     });
 
@@ -32,18 +33,23 @@ io.on('connection', (socket) => {
         
         let joined = false;
         for (const roomId in rooms) {
-            // 尋找同名稱且正在等候的遊戲
             if (rooms[roomId].game === gameName && rooms[roomId].players.length === 1) {
                 rooms[roomId].players.push(socket.id);
                 players[socket.id].status = 'playing';
                 players[socket.id].roomId = roomId;
+                players[socket.id].game = gameName; //🔥 記錄遊戲名稱
+                
+                //🔥 將原本在等待的房主狀態也改為 playing
+                const hostId = rooms[roomId].players[0];
+                if (players[hostId]) players[hostId].status = 'playing';
+                
                 socket.join(roomId);
                 
                 io.to(roomId).emit('game_start', { 
                     roomId: roomId, 
                     game: gameName,
                     players: rooms[roomId].players,
-                    state: {} // 初始化空白狀態
+                    state: {} 
                 });
                 io.emit('update_player_list', players);
                 joined = true;
@@ -57,13 +63,46 @@ io.on('connection', (socket) => {
                 game: gameName, 
                 players: [socket.id], 
                 spectators: [], 
-                state: {} // 狀態交由前端遊戲自行管理與同步
+                state: {} 
             };
-            players[socket.id].status = 'playing';
+            players[socket.id].status = 'waiting'; //🔥 更改狀態為 waiting (等待對手)
             players[socket.id].roomId = newRoomId;
+            players[socket.id].game = gameName;    //🔥 記錄遊戲名稱
             socket.join(newRoomId);
             
             socket.emit('waiting_for_opponent');
+            io.emit('update_player_list', players);
+        }
+    });
+
+    // 🔥 新增：處理玩家點擊列表上的「加入」按鈕 (指定加入某人的房間)
+    socket.on('join_specific', (targetId) => {
+        if (!players[socket.id] || !players[targetId]) return;
+        
+        const targetRoomId = players[targetId].roomId;
+        const room = rooms[targetRoomId];
+        
+        // 確保房間存在且真的只有一個人 (等待中)
+        if (targetRoomId && room && room.players.length === 1) {
+            const gameName = room.game;
+            room.players.push(socket.id);
+            
+            // 更新加入者的狀態
+            players[socket.id].status = 'playing';
+            players[socket.id].roomId = targetRoomId;
+            players[socket.id].game = gameName;
+            
+            // 更新房主的狀態
+            players[targetId].status = 'playing';
+            
+            socket.join(targetRoomId);
+            
+            io.to(targetRoomId).emit('game_start', { 
+                roomId: targetRoomId, 
+                game: gameName,
+                players: room.players,
+                state: {} 
+            });
             io.emit('update_player_list', players);
         }
     });
@@ -110,22 +149,20 @@ io.on('connection', (socket) => {
         
         const roomId = players[socket.id].roomId;
         if (roomId && rooms[roomId]) {
-            // 如果離開的是遊戲玩家
             if (rooms[roomId].players.includes(socket.id)) {
-                socket.to(roomId).emit('player_disconnected'); //🔥 改用 socket.to()，只發送給房間內「除了自己以外」的人
-                delete rooms[roomId]; // 刪除房間
+                socket.to(roomId).emit('player_disconnected'); 
+                delete rooms[roomId]; 
                 
-                // 把原本在該房間的所有玩家與觀戰者狀態強制設回 idle
                 for (const pid in players) {
                     if (players[pid].roomId === roomId) {
                         players[pid].status = 'idle';
                         players[pid].roomId = null;
+                        players[pid].game = null; //🔥 清空遊戲紀錄
                         const targetSocket = io.sockets.sockets.get(pid);
                         if (targetSocket) targetSocket.leave(roomId);
                     }
                 }
             } 
-            // 如果離開的只是觀戰者
             else if (rooms[roomId].spectators.includes(socket.id)) {
                 rooms[roomId].spectators = rooms[roomId].spectators.filter(id => id !== socket.id);
                 players[socket.id].status = 'idle';
@@ -133,11 +170,10 @@ io.on('connection', (socket) => {
                 socket.leave(roomId);
             }
         } else {
-            // 防呆機制：若找不到房間，依然重置玩家狀態
             players[socket.id].status = 'idle';
             players[socket.id].roomId = null;
+            players[socket.id].game = null; //🔥 清空遊戲紀錄
         }
-        
         io.emit('update_player_list', players);
     });
 
@@ -147,7 +183,6 @@ io.on('connection', (socket) => {
             const roomId = players[socket.id].roomId;
             if (roomId && rooms[roomId]) {
                 if (rooms[roomId].players.includes(socket.id)) {
-                    // 玩家斷線，通知其他人並解散房間
                     io.to(roomId).emit('player_disconnected');
                     delete rooms[roomId];
                     
@@ -155,16 +190,16 @@ io.on('connection', (socket) => {
                         if (players[pid].roomId === roomId && pid !== socket.id) {
                             players[pid].status = 'idle';
                             players[pid].roomId = null;
+                            players[pid].game = null; //🔥 清空遊戲紀錄
                             const targetSocket = io.sockets.sockets.get(pid);
                             if (targetSocket) targetSocket.leave(roomId);
                         }
                     }
                 } else if (rooms[roomId].spectators.includes(socket.id)) {
-                    // 觀戰者斷線，單純從名單移除
                     rooms[roomId].spectators = rooms[roomId].spectators.filter(id => id !== socket.id);
                 }
             }
-            delete players[socket.id]; // 刪除該名斷線玩家的資料
+            delete players[socket.id]; 
             io.emit('update_player_list', players);
         }
         console.log('使用者斷線:', socket.id);
