@@ -75,6 +75,15 @@ const loginBtn = document.getElementById('login-btn');
 const welcomeText = document.getElementById('welcome-text');
 const playerListUl = document.getElementById('player-list-ul');
 
+// 🔥 動態注入專屬加入按鈕與等待狀態的 CSS
+const dynamicStyle = document.createElement('style');
+dynamicStyle.innerHTML = `
+    .status-waiting { color: #fbbf24; font-weight: 600; } /* 黃色 */
+    .join-btn { background: rgba(74, 222, 128, 0.15) !important; border: 1px solid #4ade80 !important; color: #4ade80 !important; }
+    .join-btn:hover { background: #4ade80 !important; color: #000 !important; transform: scale(1.05); }
+`;
+document.head.appendChild(dynamicStyle);
+
 loginBtn.addEventListener('click', () => {
     const name = usernameInput.value.trim();
     if (name) {
@@ -91,18 +100,41 @@ window.socket.on('update_player_list', (players) => {
     for (const id in players) {
         const player = players[id];
         const li = document.createElement('li');
-        let statusText = player.status === 'idle' ? '閒置中' : (player.status === 'playing' ? '遊戲中' : '觀戰中');
+        
+        let statusText = '閒置中';
+        if (player.status === 'playing') statusText = '遊戲中';
+        else if (player.status === 'spectating') statusText = '觀戰中';
+        else if (player.status === 'waiting') statusText = '等待對手'; //🔥 解析等待中
+
         let statusClass = `status-${player.status}`;
         
         let innerHTML = `<span>${player.username} <small class="${statusClass}">(${statusText})</small></span>`;
-        if (player.status === 'playing' && id !== window.socket.id) {
-            innerHTML += `<button class="spectate-btn" onclick="spectatePlayer('${id}')">觀戰</button>`;
+        
+        //🔥 根據狀態決定要給「觀戰」還是「加入」按鈕
+        if (id !== window.socket.id) {
+            if (player.status === 'playing') {
+                innerHTML += `<button class="spectate-btn" onclick="spectatePlayer('${id}')">觀戰</button>`;
+            } else if (player.status === 'waiting') {
+                // 如果房間還沒滿，顯示綠色的加入按鈕
+                innerHTML += `<button class="spectate-btn join-btn" onclick="joinPlayer('${id}')">加入</button>`;
+            }
         }
+        
         li.innerHTML = innerHTML;
         playerListUl.appendChild(li);
     }
 });
 
+window.spectatePlayer = function(targetId) {
+    window.socket.emit('spectate', targetId);
+};
+
+//🔥 新增：點擊加入某人的功能
+window.joinPlayer = function(targetId) {
+    window.UI.gameWindow.style.display = 'flex';
+    window.UI.gameContent.innerHTML = '<h3>連線中，加入對局...</h3>';
+    window.socket.emit('join_specific', targetId);
+};
 window.spectatePlayer = function(targetId) {
     window.socket.emit('spectate', targetId);
 };
