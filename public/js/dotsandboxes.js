@@ -1,3 +1,5 @@
+// @GAME_NAME: 點格棋 (Dots and Boxes)
+// @GAME_DESC: 連線佔地，取得額外回合！
 (() => {
     const socket = window.socket;
     const { gameWindow, gameContent } = window.UI;
