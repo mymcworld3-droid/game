@@ -1,3 +1,5 @@
+// @GAME_NAME: 五子棋 (Gomoku)
+// @GAME_DESC: 15x15 黑白連線策略對決
 (() => {
     const socket = window.socket;
     const { gameWindow, gameContent } = window.UI;
