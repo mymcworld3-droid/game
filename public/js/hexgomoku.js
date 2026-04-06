@@ -10,14 +10,10 @@
     
     let gameState = { board: {}, turn: '', symbols: {}, isGameOver: false, winner: null };
 
-    // 🔥 相機系統變數
+    // 相機系統變數 (保留自動追蹤與縮放，移除自由拖曳)
     let panX_cqw = 0;
     let panY_cqw = 0;
     let currentScale = 1;
-    let isDragging = false;
-    let hasDragged = false;
-    let lastClientX = 0;
-    let lastClientY = 0;
 
     const style = document.createElement('style');
     style.innerHTML = `
@@ -27,12 +23,11 @@
             border-radius: 4cqw;
             background: rgba(0, 0, 0, 0.2);
             box-shadow: inset 0 2cqw 10cqw rgba(0,0,0,0.5);
-            touch-action: none; /* 防止瀏覽器預設滑動，讓我們的拖曳生效 */
             position: relative;
             overflow: hidden; 
         }
         
-        /* 🔥 相機容器，所有棋子都在這個圖層上被平移與縮放 */
+        /* 相機容器，所有棋子都在這個圖層上被平移與縮放 */
         #hex-transform {
             position: absolute;
             left: 50%;
@@ -50,7 +45,7 @@
         .hex-inner {
             width: 100%; 
             height: 100%;
-            background: #2a2a40;
+            background: transparent; /* 🔥 隱藏原本的網格底色，讓畫面無邊界化 */
             clip-path: polygon(50% 0%, 100% 25%, 100% 75%, 50% 100%, 0% 75%, 0% 25%);
             transform: scale(0.92); 
             position: relative;
@@ -78,7 +73,7 @@
         .hex-blue { background: radial-gradient(circle at 30% 30%, #4da6ff, #0055cc); }
         @keyframes dropIn { 0% { transform: scale(1.5); opacity: 0; } 100% { transform: scale(1); opacity: 1; } }
 
-        /* 🔥 相機縮放按鈕 */
+        /* 相機縮放按鈕 */
         .zoom-controls {
             position: absolute;
             bottom: 3cqw;
@@ -138,9 +133,17 @@
         updateTurnDisplay(gameState.turn, true);
         if (gameState.isGameOver) handleGameOverDisplay(true);
         updateValidMoves();
+        
+        // 觀戰時自動對準最後下的一步 (如果有的話)
+        const keys = Object.keys(gameState.board);
+        if(keys.length > 0) {
+            const lastKey = keys[keys.length - 1];
+            const [q, r] = lastKey.split(',').map(Number);
+            centerOn(q, r, false);
+        }
     });
 
-    // 🔥 更新相機矩陣
+    // 更新相機矩陣
     function updateTransform(smooth = false) {
         const el = document.getElementById('hex-transform');
         if(!el) return;
@@ -148,7 +151,7 @@
         el.style.transform = `scale(${currentScale}) translate(${panX_cqw}cqw, ${panY_cqw}cqw)`;
     }
 
-    // 🔥 鏡頭自動追蹤指定座標
+    // 鏡頭自動追蹤指定座標
     function centerOn(q, r, smooth = true) {
         const size = 3.5; 
         const width = Math.sqrt(3) * size; 
@@ -161,14 +164,13 @@
     function renderBoard() {
         // 重置相機狀態
         panX_cqw = 0; panY_cqw = 0; currentScale = 1;
-        isDragging = false; hasDragged = false;
 
         const size = 3.5; 
         const width = Math.sqrt(3) * size; 
         const height = 2 * size;           
         
         let cellsHTML = '';
-        const radius = 15; // 產生範圍加大，讓玩家有寬廣的拖曳空間
+        const radius = 15; // 大範圍網格
 
         for (let q = -radius; q <= radius; q++) {
             for (let r = -radius; r <= radius; r++) {
@@ -206,40 +208,10 @@
             </div>
         `;
 
-        updateTransform(false); // 初始渲染
-
-        // 🔥 綁定滑鼠/手指拖曳邏輯
-        const viewport = document.getElementById('hex-viewport');
-        viewport.addEventListener('pointerdown', e => {
-            isDragging = true;
-            hasDragged = false;
-            lastClientX = e.clientX;
-            lastClientY = e.clientY;
-            viewport.setPointerCapture(e.pointerId);
-        });
-
-        viewport.addEventListener('pointermove', e => {
-            if(!isDragging) return;
-            const dx = e.clientX - lastClientX;
-            const dy = e.clientY - lastClientY;
-            if(Math.abs(dx) > 3 || Math.abs(dy) > 3) hasDragged = true; // 防呆：如果移動幅度大就判定為拖曳，不要觸發點擊
-            
-            // 將像素差值轉換為 cqw 比例，並反比於縮放度
-            const cqwInPx = viewport.clientWidth / 100;
-            panX_cqw += (dx / cqwInPx) / currentScale;
-            panY_cqw += (dy / cqwInPx) / currentScale;
-            
-            lastClientX = e.clientX;
-            lastClientY = e.clientY;
-            updateTransform(false);
-        });
-
-        viewport.addEventListener('pointerup', e => {
-            isDragging = false;
-            viewport.releasePointerCapture(e.pointerId);
-        });
+        updateTransform(false); // 初始渲染置中
 
         // 🔥 綁定滑鼠滾輪縮放
+        const viewport = document.getElementById('hex-viewport');
         viewport.addEventListener('wheel', e => {
             e.preventDefault();
             const zoomDelta = e.deltaY > 0 ? -0.1 : 0.1;
@@ -250,22 +222,28 @@
         // 按鈕控制
         document.getElementById('btn-zoom-in').onclick = () => { currentScale = Math.min(2.5, currentScale + 0.3); updateTransform(true); };
         document.getElementById('btn-zoom-out').onclick = () => { currentScale = Math.max(0.4, currentScale - 0.3); updateTransform(true); };
-        document.getElementById('btn-zoom-center').onclick = () => { centerOn(0, 0, true); };
+        document.getElementById('btn-zoom-center').onclick = () => { 
+            // 點擊中心按鈕時，對準最後一步
+            const keys = Object.keys(gameState.board);
+            if(keys.length > 0) {
+                const [q, r] = keys[keys.length - 1].split(',').map(Number);
+                centerOn(q, r, true);
+            } else {
+                centerOn(0, 0, true); 
+            }
+        };
 
-        // 綁定下棋點擊 (排除拖曳狀態)
-        document.querySelectorAll('.hex-cell').forEach(cell => {
-            cell.addEventListener('click', (e) => {
-                if (hasDragged) return; // 🔥 如果剛剛是在拖曳畫面，就不算下棋
-                if (!isMyTurn || gameState.isGameOver) return;
-                
-                const targetCell = e.target.closest('.hex-cell');
-                if (!targetCell || !targetCell.classList.contains('valid')) return;
+        // 🔥 改用「事件代理」綁定下棋點擊 (徹底解決手機端與拖曳衝突導致無法點擊的Bug)
+        document.getElementById('hex-transform').addEventListener('click', (e) => {
+            if (!isMyTurn || gameState.isGameOver) return;
+            
+            const targetCell = e.target.closest('.hex-cell.valid');
+            if (!targetCell) return; // 點到不能下的地方就忽略
 
-                const q = parseInt(targetCell.getAttribute('data-q'));
-                const r = parseInt(targetCell.getAttribute('data-r'));
-                
-                socket.emit('game_action', { roomId: currentRoomId, action: 'hex_move', payload: { q, r } });
-            });
+            const q = parseInt(targetCell.getAttribute('data-q'));
+            const r = parseInt(targetCell.getAttribute('data-r'));
+            
+            socket.emit('game_action', { roomId: currentRoomId, action: 'hex_move', payload: { q, r } });
         });
 
         const restartBtn = document.getElementById('hex-restart-btn');
@@ -331,7 +309,7 @@
             gameState.board[key] = mark;
             placePiece(key, mark);
             
-            // 🔥 每次有人下棋，自動將鏡頭平滑追蹤到最新落子的位置！
+            // 每次有人下棋，自動將鏡頭平滑追蹤到最新落子的位置！
             centerOn(q, r, true); 
             
             const result = checkWin(gameState.board, q, r, mark);
@@ -362,6 +340,7 @@
             renderBoard();
             updateTurnDisplay(gameState.turn, mySymbol === null);
             updateValidMoves();
+            centerOn(0, 0, true); // 重來時鏡頭歸中
             
             if (data.sender === socket.id) socket.emit('sync_state', { roomId: currentRoomId, state: gameState });
         }
